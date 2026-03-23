@@ -36,3 +36,17 @@ tasks.withType(AbstractArchiveTask).configureEach {
 test {
     useJUnit()
 }
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+tasks.register('install') {
+    group = 'publishing'
+    description = 'Compatibility task for legacy `gradlew install`; publishes artifacts to Maven Local.'
+    dependsOn tasks.named('publishToMavenLocal')
+}
