@@ -18,7 +18,8 @@ public class ConfigSectionPopulator {
         this(new InstantFallbackConfigurationSection(YamlConfiguration.loadConfiguration(configFile)), configSection);
     }
 
-    private ConfigSectionPopulator(InstantFallbackConfigurationSection configurationSection, ConfigSection workingConfigSection) {
+    private ConfigSectionPopulator(InstantFallbackConfigurationSection configurationSection,
+            ConfigSection workingConfigSection) {
         this.configurationSection = configurationSection;
         this.workConfigSection = workingConfigSection;
     }
@@ -31,41 +32,31 @@ public class ConfigSectionPopulator {
                 Section sectionAnnotation = field.getAnnotation(Section.class);
                 if (sectionAnnotation != null) {
                     ConfigSection subConfigSection = (ConfigSection) field.get(workConfigSection);
-                    new ConfigSectionPopulator(configurationSection.getSection(sectionAnnotation.key(), null), subConfigSection).populate();
+                    new ConfigSectionPopulator(configurationSection.getSection(sectionAnnotation.key(), null),
+                            subConfigSection).populate();
                 }
             }
 
             {
                 SectionMap sectionMapAnnotation = field.getAnnotation(SectionMap.class);
                 if (sectionMapAnnotation != null) {
-                    ConfigSectionMap configSectionMap = (ConfigSectionMap) field.get(workConfigSection);
-                    configSectionMap.clear();
-                    InstantFallbackConfigurationSection mapSection = configurationSection.getSection(sectionMapAnnotation.key(), null);
-
-                    ConfigSection defaultEntry = (ConfigSection) configSectionMap.entryType().getConstructor().newInstance();
-                    new ConfigSectionPopulator(mapSection.getSection(sectionMapAnnotation.defaultKey(), null), defaultEntry).populate();
-                    configSectionMap.setDefaultSection(defaultEntry);
-
-                    for (String key : mapSection.getKeys(false)) {
-                        ConfigSection newEntry = (ConfigSection) configSectionMap.entryType().getConstructor().newInstance();
-                        new ConfigSectionPopulator(mapSection.getSection(key, sectionMapAnnotation.defaultKey()), newEntry).populate();
-                        configSectionMap.put(key, newEntry);
-                    }
+                    populateSectionMap(castConfigSectionMap(field.get(workConfigSection)), sectionMapAnnotation);
                 }
             }
             {
                 Entry entryAnnotation = field.getAnnotation(Entry.class);
                 if (entryAnnotation != null) {
-                    ConfigEntry configEntry = (ConfigEntry) field.get(workConfigSection);
+                    ConfigEntry<?> configEntry = castConfigEntry(field.get(workConfigSection));
                     configEntry.setValue(configurationSection.get(entryAnnotation.key()));
                 }
             }
             {
                 EntryMap entryMapAnnotation = field.getAnnotation(EntryMap.class);
                 if (entryMapAnnotation != null) {
-                    ConfigEntryMap configEntryMap = (ConfigEntryMap) field.get(workConfigSection);
+                    ConfigEntryMap<?, ?> configEntryMap = castConfigEntryMap(field.get(workConfigSection));
                     configEntryMap.clear();
-                    InstantFallbackConfigurationSection mapSection = configurationSection.getSection(entryMapAnnotation.key(), null);
+                    InstantFallbackConfigurationSection mapSection = configurationSection
+                            .getSection(entryMapAnnotation.key(), null);
 
                     configEntryMap.setDefault(mapSection.get(entryMapAnnotation.defaultKey()));
                     for (String key : mapSection.getKeys(false)) {
@@ -74,6 +65,44 @@ public class ConfigSectionPopulator {
                 }
             }
         }
+    }
+
+    private <K, C extends ConfigSection> void populateSectionMap(ConfigSectionMap<K, C> configSectionMap,
+            SectionMap sectionMapAnnotation) throws Exception {
+        configSectionMap.clear();
+        InstantFallbackConfigurationSection mapSection = configurationSection.getSection(sectionMapAnnotation.key(),
+                null);
+
+        C defaultEntry = newEntry(configSectionMap);
+        new ConfigSectionPopulator(mapSection.getSection(sectionMapAnnotation.defaultKey(), null), defaultEntry)
+                .populate();
+        configSectionMap.setDefaultSection(defaultEntry);
+
+        for (String key : mapSection.getKeys(false)) {
+            C newEntry = newEntry(configSectionMap);
+            new ConfigSectionPopulator(mapSection.getSection(key, sectionMapAnnotation.defaultKey()), newEntry)
+                    .populate();
+            configSectionMap.put(key, newEntry);
+        }
+    }
+
+    private <C extends ConfigSection> C newEntry(ConfigSectionMap<?, C> configSectionMap) throws Exception {
+        return configSectionMap.entryType().getDeclaredConstructor().newInstance();
+    }
+
+    @SuppressWarnings("unchecked")
+    private ConfigEntry<?> castConfigEntry(Object value) {
+        return (ConfigEntry<?>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private ConfigEntryMap<?, ?> castConfigEntryMap(Object value) {
+        return (ConfigEntryMap<?, ?>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <K, C extends ConfigSection> ConfigSectionMap<K, C> castConfigSectionMap(Object value) {
+        return (ConfigSectionMap<K, C>) value;
     }
 
 }

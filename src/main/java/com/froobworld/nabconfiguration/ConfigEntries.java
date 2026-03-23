@@ -5,7 +5,6 @@ import java.util.List;
 
 public final class ConfigEntries {
 
-
     public static ConfigEntry<Double> doubleEntry() {
         return new ConfigEntry<>(o -> ((Number) o).doubleValue());
     }
@@ -44,9 +43,18 @@ public final class ConfigEntries {
             return null;
         });
     }
-    
+
     public static ConfigEntry<List<String>> stringListEntry() {
-        return new ConfigEntry<>(o -> o == null ? new ArrayList<>() : (List<String>) o);
+        return new ConfigEntry<>(o -> {
+            if (!(o instanceof List<?>)) {
+                return new ArrayList<>();
+            }
+            List<String> list = new ArrayList<>();
+            for (Object value : (List<?>) o) {
+                list.add(value == null ? null : value.toString());
+            }
+            return list;
+        });
     }
 
 }

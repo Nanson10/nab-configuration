@@ -7,6 +7,7 @@ public class ConfigEntry<T> implements Supplier<T> {
     private final Function<Object, T> mappingFunction;
     private T value;
 
+    @SuppressWarnings("unchecked")
     public ConfigEntry() {
         this(object -> (T) object);
     }
@@ -14,7 +15,6 @@ public class ConfigEntry<T> implements Supplier<T> {
     public ConfigEntry(Function<Object, T> mappingFunction) {
         this.mappingFunction = mappingFunction;
     }
-
 
     @Override
     public T get() {

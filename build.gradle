@@ -1,21 +1,38 @@
 plugins {
     id 'java'
-    id 'maven'
+    id 'maven-publish'
 }
 
-group 'com.froobworld'
-version '1.0.2'
+group = 'com.froobworld'
+version = '1.0.2'
 
-sourceCompatibility = 1.8
+java {
+    withSourcesJar()
+}
 
 repositories {
     mavenCentral()
     maven {
-        url "https://hub.spigotmc.org/nexus/content/repositories/snapshots"
+        url = uri('https://hub.spigotmc.org/nexus/content/repositories/snapshots')
     }
 }
 
 dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    compileOnly group: 'org.bukkit', name: 'bukkit', version: '1.14.4-R0.1-SNAPSHOT'
+    testImplementation 'junit:junit:4.13.2'
+    compileOnly 'org.bukkit:bukkit:1.14.4-R0.1-SNAPSHOT'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 8
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint:-options']
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+test {
+    useJUnit()
 }
